@@ -1,0 +1,31 @@
+{
+	"name": "pldl",
+	"version": "0.1.0",
+	"description": "pldl is a command-line interface (CLI) tool that allows you to easily download YouTube playlists. With pldl, you can specify the playlist ID and download all the videos within the playlist for offline viewing.",
+	"main": "./bin/index.js",
+	"scripts": {},
+	"bin": {
+		"pldl": "./bin/index.js"
+	},
+	"keywords": [
+		"cli",
+		"youtube",
+		"playlist",
+		"download",
+		"playlist download"
+	],
+	"author": {
+		"name": "Saharia Shihab",
+		"url": "https://github.com/imshihab/",
+		"email": "beyondshihab@gmail.com"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/imshihab/pldl.git"
+	},
+	"license": "MIT",
+	"dependencies": {
+		"googleapis": "^122.0.0",
+		"ytdl-core": "^4.11.5"
+	}
+}
