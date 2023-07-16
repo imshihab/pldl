@@ -86,10 +86,10 @@ This setting allows you to control the number of videos to download from the pla
 
 Here are a few examples to illustrate the usage of pldl:
 
--   Download a playlist with ID `PL6zxxT4NC3TjfJZ5Di2kGifEvTd6zPZvj`:
+-   Download a playlist with ID `PLnKtcw5mIGUR-aMBz9AphxHzEH7Kt-azY`:
 
 ```bash
-pldl PL6zxxT4NC3TjfJZ5Di2kGifEvTd6zPZvj
+pldl PLnKtcw5mIGUR-aMBz9AphxHzEH7Kt-azY
 ```
 
 -   Set the YouTube API key:
