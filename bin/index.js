@@ -208,7 +208,7 @@ if (versionFlags.has(arg)) {
                 const link = playlistVideo.link;
                 try {
                     const info = await ytdl.getInfo(link);
-                    const formats = ytdl.filterFormats(info.formats, 'videoonly');
+                    const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
                     const mp4Formats = formats.filter((format) => format.container === 'mp4');
                     // @ts-ignore
                     mp4Formats.sort((a, b) => b.quality - a.quality);
