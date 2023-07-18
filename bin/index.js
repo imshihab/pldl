@@ -210,8 +210,7 @@ if (versionFlags.has(arg)) {
                     const info = await ytdl.getInfo(link);
                     const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
                     const mp4Formats = formats.filter((format) => format.container === 'mp4');
-                    // @ts-ignore
-                    mp4Formats.sort((a, b) => b.quality - a.quality);
+                    mp4Formats.sort((a, b) => parseInt(b.qualityLabel.replace('p', '')) - parseInt(a.qualityLabel.replace('p', '')));
                     const highestQualityFormat = mp4Formats[0];
                     const videoReadableStream = ytdl(link, { format: highestQualityFormat });
 
