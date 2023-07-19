@@ -1,84 +1,106 @@
 #!/usr/bin/env node
 
-'use strict';
+"use strict";
 process.stdout.write(`\u001b]0;YT Playlist downloader\u0007`);
 
-const ytdl = require('ytdl-core');
-const { google } = require('googleapis');
-const fs = require('node:fs');
-const pkg = require('./../package.json');
-const setting = require('./settings.json');
-const { generateProgressBar, formatBytes, sanitizeFilename, help } = require('./utils');
-const path = require('node:path');
+const ytdl = require("ytdl-core");
+const { google } = require("googleapis");
+const fs = require("node:fs");
+const pkg = require("./../package.json");
+const setting = require("./settings.json");
+const {
+    generateProgressBar,
+    formatBytes,
+    sanitizeFilename,
+    help,
+    wait,
+    formatTime,
+} = require("./utils");
+const path = require("node:path");
 
 const Args = process.argv.slice(2);
 if (Args.length === 0) help();
 const root = process.cwd();
-const BASE_URL = 'https://www.youtube.com/watch?v=';
+const BASE_URL = "https://www.youtube.com/watch?v=";
 
-
-const versionFlags = new Set(['-v', '--v', '--version']);
-const helpFlags = new Set(['-h', '--h', '--help']);
+const versionFlags = new Set(["-v", "--v", "--version"]);
+const helpFlags = new Set(["-h", "--h", "--help"]);
 
 const arg = Args[0];
-const isDash = arg.startsWith('-');
-const isApiFlag = arg.startsWith('setting.key=');
-const isPlFolderFlag = arg.startsWith('setting.plFolder=');
-const isMaxResultsFlag = arg.startsWith('setting.maxResults=');
+const isDash = arg.startsWith("-");
+const isApiFlag = arg.startsWith("setting.key=");
+const isPlFolderFlag = arg.startsWith("setting.plFolder=");
+const isprogStyleFlag = arg.startsWith("setting.progStylele=");
 const playlistId = arg;
 
-// ANSI escape code for purple color
-const purpleColor = '\x1b[35m';
-// ANSI escape code to reset color
-const resetColor = '\x1b[0m';
-
+const purpleColor = "\x1b[35m";
+const resetColor = "\x1b[0m";
 
 if (versionFlags.has(arg)) {
-    console.log(`pldl/${purpleColor}${pkg.version}${resetColor} Node: ${process.version}`);
+    console.log(
+        `pldl/${purpleColor}${pkg.version}${resetColor} Node: ${process.version}`
+    );
     process.exit(0);
 } else if (helpFlags.has(arg)) {
     help();
 } else if (isApiFlag) {
-    const apiKey = arg.split('=')[1];
+    const apiKey = arg.split("=")[1];
     setting.key = apiKey;
-    fs.writeFile(`${__dirname}/settings.json`, JSON.stringify(setting, null, '    '), (err) => {
-        if (err) {
-            console.error('Error writing settings file:', err);
-            process.exit(1);
+    fs.writeFile(
+        `${__dirname}/settings.json`,
+        JSON.stringify(setting, null, "    "),
+        (err) => {
+            if (err) {
+                console.error("Error writing settings file:", err);
+                process.exit(1);
+            }
+            console.log("API key saved successfully!");
+            process.exit(0);
         }
-        console.log('API key saved successfully!');
-        process.exit(0);
-    });
+    );
+} else if (isprogStyleFlag) {
+    const progStyleValue = parseInt(arg.split("=")[1], 10);
+    if (progStyleValue >= 1 && progStyleValue <= 8) {
+        setting.progStyle = progStyleValue;
+        fs.writeFile(
+            `${__dirname}/settings.json`,
+            JSON.stringify(setting, null, "    "),
+            (err) => {
+                if (err) {
+                    console.error("Error writing settings file:", err);
+                    process.exit(1);
+                }
+                console.log("Progress bar style saved successfully!");
+                process.exit(0);
+            }
+        );
+    } else {
+        console.error("Invalid progress bar style. Allowed values are 1-8.");
+        process.exit(1);
+    }
 } else if (isPlFolderFlag) {
-    const value = arg.split('=')[1].trim();
-    setting.plFolder = value === 'true';
-    fs.writeFile(`${__dirname}/settings.json`, JSON.stringify(setting, null, '    '), (err) => {
-        if (err) {
-            console.error('Error writing settings file:', err);
-            process.exit(1);
+    const value = arg.split("=")[1].trim();
+    setting.plFolder = value === "true";
+    fs.writeFile(
+        `${__dirname}/settings.json`,
+        JSON.stringify(setting, null, "    "),
+        (err) => {
+            if (err) {
+                console.error("Error writing settings file:", err);
+                process.exit(1);
+            }
+            console.log(
+                `Setting "plFolder" saved successfully! New value: ${setting.plFolder}`
+            );
+            process.exit(0);
         }
-        console.log(`Setting "plFolder" saved successfully! New value: ${setting.plFolder}`);
-        process.exit(0);
-    });
-} else if (isMaxResultsFlag) {
-    const value = arg.split('=')[1].trim();
-    setting.maxResults = parseInt(value) > 240 ? 240 : parseInt(value);
-    fs.writeFile(`${__dirname}/settings.json`, JSON.stringify(setting, null, '    '), (err) => {
-        if (err) {
-            console.error('Error writing settings file:', err);
-            process.exit(1);
-        }
-        console.log(`Setting "maxResults" saved successfully! New value: ${setting.maxResults}`);
-        process.exit(0);
-    });
-} else if (!isDash && !isPlFolderFlag && !isApiFlag && !isMaxResultsFlag) {
-    // Create a YouTube API client
+    );
+} else if (!isDash && !isPlFolderFlag && !isApiFlag && !isprogStyleFlag) {
     const youtube = google.youtube({
-        version: 'v3',
+        version: "v3",
         auth: setting.key,
     });
 
-    // Check if the playlist file already exists
     if (!fs.existsSync(path.join(__dirname, "Playlist"))) {
         fs.mkdirSync(path.join(__dirname, "Playlist"));
     }
@@ -92,19 +114,19 @@ if (versionFlags.has(arg)) {
             // @ts-ignore
             await youtube.playlists.list(
                 {
-                    part: 'snippet',
+                    part: "snippet",
                     id: playlistId,
                 },
                 (error, response) => {
                     if (error) {
-                        console.error('Error:', error.message);
+                        console.error("Error:", error.message);
                         reject(error);
                     } else {
                         const playlist = response.data.items[0];
                         if (playlist) {
                             resolve(playlist.snippet.title);
                         } else {
-                            reject(new Error('Playlist not found'));
+                            reject(new Error("Playlist not found"));
                         }
                     }
                 }
@@ -131,38 +153,33 @@ if (versionFlags.has(arg)) {
         try {
             playlistData.Title = await getPlaylistTitle(playlistId);
         } catch (error) {
-            console.error('Error:', error.message);
+            console.error("Error:", error.message);
             process.exit(1);
         }
 
-        const filePath = path.join(__dirname, 'Playlist', `${playlistId}.json`);
+        const filePath = path.join(__dirname, "Playlist", `${playlistId}.json`);
         try {
-            // Check if the playlist file already exists
             if (fs.existsSync(filePath)) {
-                playlistData = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+                playlistData = JSON.parse(fs.readFileSync(filePath, "utf-8"));
                 throw new Error();
             }
 
             let nextPageToken = null;
-            let processedItemCount = 0;
             do {
                 const response = await youtube.playlistItems.list({
                     // @ts-ignore
-                    part: 'snippet',
+                    part: "snippet",
                     playlistId: playlistId,
-                    maxResults: setting.maxResults,
+                    maxResults: 24,
                     pageToken: nextPageToken,
                 });
                 const items = response.data.items;
-                // Extract video details from the playlist items
                 for (const item of items) {
-
                     const videoId = item.snippet.resourceId.videoId;
                     const videoTitle = item.snippet.title;
                     const videoDescription = item.snippet.description;
                     const videoThumbnail = item.snippet.thumbnails.default.url;
                     const videoLink = `${BASE_URL}${videoId}`;
-
                     playlistData.Playlist.push({
                         videoId: videoId,
                         title: sanitizeFilename(videoTitle),
@@ -170,34 +187,39 @@ if (versionFlags.has(arg)) {
                         thumbnail: videoThumbnail,
                         link: videoLink,
                     });
-                    // Track the number of processed items
-                    processedItemCount++;
-
-                    // Break the loop if the desired limit is reached
-                    if ((processedItemCount + 2) === setting.maxResults) {
-                        nextPageToken = null;
-                        break;
-                    }
                 }
                 nextPageToken = response.data.nextPageToken;
             } while (nextPageToken);
 
-            fs.writeFileSync(filePath, JSON.stringify(playlistData, null, '    '));
+            fs.writeFileSync(
+                filePath,
+                JSON.stringify(playlistData, null, "    ")
+            );
         } catch (error) {
-
         } finally {
             let indexOfVideo = 0;
             const { Title, Playlist } = playlistData;
-            const videoFolder = setting.plFolder ? sanitizeFilename(Title) : '';
-            const playlistFilePath = setting.plFolder ? path.join(root, videoFolder, `${Title}.json`) : path.join(root, `${sanitizeFilename(Title)}.json`);
-            const videoFolderExists = fs.existsSync(path.join(root, videoFolder));
+            const videoFolder = setting.plFolder ? sanitizeFilename(Title) : "";
+            const playlistFilePath = setting.plFolder
+                ? path.join(
+                    root,
+                    videoFolder,
+                    `${sanitizeFilename(Title)}.json`
+                )
+                : path.join(root, `${sanitizeFilename(Title)}.json`);
+            const videoFolderExists = fs.existsSync(
+                path.join(root, videoFolder)
+            );
 
             if (setting.plFolder && !videoFolderExists) {
                 fs.mkdirSync(path.join(root, videoFolder));
             }
 
             if (!fs.existsSync(playlistFilePath)) {
-                fs.writeFileSync(playlistFilePath, JSON.stringify(playlistData, null, '    '));
+                fs.writeFileSync(
+                    playlistFilePath,
+                    JSON.stringify(playlistData, null, "    ")
+                );
             }
 
             /**
@@ -208,62 +230,101 @@ if (versionFlags.has(arg)) {
                 const link = playlistVideo.link;
                 try {
                     const info = await ytdl.getInfo(link);
-                    const formats = ytdl.filterFormats(info.formats, 'videoandaudio');
-                    const mp4Formats = formats.filter((format) => format.container === 'mp4');
-                    mp4Formats.sort((a, b) => parseInt(b.qualityLabel.replace('p', '')) - parseInt(a.qualityLabel.replace('p', '')));
-                    const highestQualityFormat = mp4Formats[0];
-                    const videoReadableStream = ytdl(link, { format: highestQualityFormat });
-
+                    const formats = ytdl.filterFormats(
+                        info.formats,
+                        "videoandaudio"
+                    );
+                    const filterVideos = formats.filter(
+                        (format) => format.hasVideo && format.hasAudio
+                    );
+                    filterVideos.sort(
+                        (a, b) =>
+                            parseInt(b.qualityLabel.replace("p", "")) -
+                            parseInt(a.qualityLabel.replace("p", ""))
+                    );
+                    const highestQualityFormat = filterVideos[0];
+                    const videoReadableStream = ytdl(link, {
+                        format: highestQualityFormat,
+                    });
                     const videoTitle = playlistVideo.title;
-                    const videoPath = setting.plFolder ? path.join(root, videoFolder, `${videoTitle}.mp4`) : path.join(root, `${videoTitle}.mp4`);
+                    const videoPath = setting.plFolder
+                        ? path.join(root, videoFolder, `${videoTitle}.mp4`)
+                        : path.join(root, `${videoTitle}.mp4`);
                     const videoFile = fs.createWriteStream(videoPath);
-
-                    console.log(`Downloading \x1b[32m${videoTitle} ...\x1b[0m`);
+                    console.log(
+                        `   Downloading \x1b[32m${videoTitle} ...\x1b[0m`
+                    );
                     let downloadedBytes = 0;
-                    const totalBytes = parseInt(highestQualityFormat.contentLength); // Parse contentLength to ensure it's a number
+                    const totalBytes = parseInt(
+                        highestQualityFormat.contentLength
+                    );
                     let prevDownloadedBytes = 0;
                     let prevTimestamp = Date.now();
+                    let remainingTimeString = "";
+                    let downloadSpeed = 0;
 
-                    videoReadableStream.on('data', (chunk) => {
-                        downloadedBytes += chunk.length;
+                    const updateRemainingTime = () => {
                         const currentTimestamp = Date.now();
-                        const timeDiff = (currentTimestamp - prevTimestamp) / 1000; // in seconds
-                        const downloadSpeed = (downloadedBytes - prevDownloadedBytes) / timeDiff; // bytes per second
-
+                        const timeDiff =
+                            (currentTimestamp - prevTimestamp) / 1000;
+                        downloadSpeed =
+                            (downloadedBytes - prevDownloadedBytes) / timeDiff;
                         prevDownloadedBytes = downloadedBytes;
                         prevTimestamp = currentTimestamp;
+                        const remainingBytes = totalBytes - downloadedBytes;
+                        const remainingTime = remainingBytes / downloadSpeed;
+                        remainingTimeString = formatTime(remainingTime);
+                    };
 
+                    const updateInterval = setInterval(() => {
+                        updateRemainingTime();
+                    }, 1000);
+
+                    videoReadableStream.on("data", (chunk) => {
+                        downloadedBytes += chunk.length;
                         const progress = (downloadedBytes / totalBytes) * 100;
-                        const progressBar = generateProgressBar(progress);
+                        const progressBar = generateProgressBar(progress) || 0;
+                        const completedSize = formatBytes(downloadedBytes) || 0;
+                        const totalSize = formatBytes(totalBytes) || 0;
                         const speed = formatBytes(downloadSpeed);
-
-                        const progressString = `${progressBar} ${progress.toFixed(2)}% | ${speed}`;
-
-                        const clearLine = '\x1B[0G'; // Move the cursor to the beginning of the line
-                        const clearToEndOfLine = '\x1B[0K'; // Clear from the cursor position to the end of the line
-
-                        process.stdout.write(clearLine + clearToEndOfLine + progressString);
+                        const progressString = `     ${progressBar} \x1b[32m${completedSize}/${totalSize}\x1b[0m | \x1b[31m${speed}\x1b[0m |\x1b[34m est: ${remainingTimeString}\x1b[0m`;
+                        const clearLine = "\x1B[0G";
+                        const clearToEndOfLine = "\x1B[0K";
+                        process.stdout.write(
+                            clearLine + clearToEndOfLine + progressString
+                        );
                     });
 
-                    videoReadableStream.on('end', () => {
-                        process.stdout.write('\n');
-                        console.log(`${setting.plFolder ? `${videoFolder}/\x1b[32m${videoTitle} \x1b[0m.mp4` : `\x1b[32m${videoTitle} \x1b[0m.mp4`} Download completed!`);
+                    videoReadableStream.on("end", async () => {
+                        clearInterval(updateInterval);
+                        process.stdout.write("\n");
+                        console.log(
+                            `${setting.plFolder
+                                ? `${videoFolder}/\x1b[32m${videoTitle} \x1b[0m.mp4`
+                                : `\x1b[32m${videoTitle} \x1b[0m.mp4`
+                            } Download completed!`
+                        );
                         Playlist.splice(indexOfVideo, 1);
-                        fs.writeFileSync(filePath, JSON.stringify(playlistData, null, '    '));
-
+                        fs.writeFileSync(
+                            filePath,
+                            JSON.stringify(playlistData, null, "    ")
+                        );
                         if (Playlist.length === 0) {
                             fs.unlinkSync(filePath);
-                            console.log('All videos have been downloaded!');
+                            console.log("    All videos have been downloaded!");
                             return;
                         }
-
                         if (indexOfVideo < Playlist.length) {
-                            console.log(`${purpleColor}${Playlist.length}${resetColor} ${Playlist.length === 1 ? "video" : "videos"} remaining`);
-                            process.stdout.write('\n');
+                            console.log(
+                                `${purpleColor}${Playlist.length
+                                }${resetColor} ${Playlist.length === 1 ? "video" : "videos"
+                                } remaining`
+                            );
+                            process.stdout.write("\n");
+                            await wait(8);
                             downloadVideo(indexOfVideo);
                         }
                     });
-
                     videoReadableStream.pipe(videoFile);
                 } catch (error) { }
             }
@@ -273,6 +334,6 @@ if (versionFlags.has(arg)) {
         }
     })();
 } else {
-    console.log('Error: the flag does not exist');
+    console.log("Error: the flag does not exist");
     process.exit(0);
 }

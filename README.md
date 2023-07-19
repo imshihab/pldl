@@ -65,22 +65,43 @@ On the other hand, if you set `plFolder` to `false`, pldl will download the file
 
 Choose the option that suits your preference and organization needs.
 
-### Max Results
+### Progress Bar Style
 
-You can configure the maximum number of results to fetch from the playlist using the following setting:
+You can configure the progress bar style using the `progStyle` setting. This setting determines the appearance of the progress bar during the download process.
 
--   `maxResults`: Specifies the maximum number of videos to download from the playlist. The default value is `24`, and the maximum value is `240`.
+#### Allowed Values:
 
-Example:
+-   1: Display a progress bar using the characters "━" for completed and "╺" for remaining.
+-   2: Display a progress bar using the characters "▓" for completed and "░" for remaining.
+-   3: Display a progress bar using the characters "■" for completed and "░" for remaining.
+-   4: Display a progress bar using the characters "=" for completed and "." for remaining.
+-   5: Display a progress bar using the characters "█" for completed and "░" for remaining.
+-   6: Display a progress bar using the characters "▒" for completed and "░" for remaining.
+-   7: Display a progress bar using the characters "⬛" for completed and "⬜" for remaining.
+-   8: Display a progress bar using the characters "◼" for completed and "◻" for remaining.
 
--   Set the maximum number of results to `100`:
+#### Default Value:
+
+The default value for `progStyle` is `1`, which displays a progress bar using the characters "━" and "╺".
+
+#### Usage:
+
+To configure the progress bar style, use the following command:
 
 ```bash
-pldl setting.maxResults=100
+pldl setting.progStyle=<value>
 ```
 
-This setting allows you to control the number of videos to download from the playlist. Adjust it according to your requirements.
+Replace `<value>` with one of the allowed values listed above.
+Example:
 
+Set the progress bar style to `5`:
+
+```bash
+pldl setting.progStyle=5
+```
+
+This setting allows you to customize the appearance of the progress bar during the download process. Choose the style that suits your preference.
 
 ## Examples
 
