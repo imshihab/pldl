@@ -1,5 +1,31 @@
 const setting = require("./settings.json");
 
+const http = require('http');
+const https = require('https');
+
+/**
+ * @param {string | https.RequestOptions | import("url").URL} url
+ */
+function ContentLength(url) {
+    return new Promise((resolve, reject) => {
+        const protocol = `${url}`.startsWith('https') ? https : http;
+        protocol.get(url, (res) => {
+            const { statusCode } = res;
+            if (statusCode !== 200) {
+                reject(new Error(`Request failed. Status Code: ${statusCode}`));
+                return;
+            }
+            const contentLength = res.headers['content-length'];
+            resolve(parseInt(contentLength));
+        })
+            .on('error', (err) => {
+                reject(err);
+            });
+    });
+}
+
+
+
 function formatTime(seconds) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -94,7 +120,7 @@ function generateProgressBar(progress) {
             break;
     }
 
-    const progressBarWidth = 56;
+    const progressBarWidth = 40;
     const completed = Math.round((progress / 100) * progressBarWidth);
     const remaining = progressBarWidth - completed;
     const progressBar =
@@ -162,4 +188,5 @@ module.exports = {
     help,
     formatTime,
     wait,
+    ContentLength
 };

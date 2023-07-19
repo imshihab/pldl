@@ -15,6 +15,7 @@ const {
     help,
     wait,
     formatTime,
+    ContentLength,
 } = require("./utils");
 const path = require("node:path");
 
@@ -30,7 +31,7 @@ const arg = Args[0];
 const isDash = arg.startsWith("-");
 const isApiFlag = arg.startsWith("setting.key=");
 const isPlFolderFlag = arg.startsWith("setting.plFolder=");
-const isprogStyleFlag = arg.startsWith("setting.progStylele=");
+const isprogStyleFlag = arg.startsWith("setting.progStyle=");
 const playlistId = arg;
 
 const purpleColor = "\x1b[35m";
@@ -60,6 +61,7 @@ if (versionFlags.has(arg)) {
     );
 } else if (isprogStyleFlag) {
     const progStyleValue = parseInt(arg.split("=")[1], 10);
+    console.log(progStyleValue)
     if (progStyleValue >= 1 && progStyleValue <= 8) {
         setting.progStyle = progStyleValue;
         fs.writeFile(
@@ -170,7 +172,7 @@ if (versionFlags.has(arg)) {
                     // @ts-ignore
                     part: "snippet",
                     playlistId: playlistId,
-                    maxResults: 24,
+                    maxResults: 244,
                     pageToken: nextPageToken,
                 });
                 const items = response.data.items;
@@ -255,8 +257,9 @@ if (versionFlags.has(arg)) {
                         `   Downloading \x1b[32m${videoTitle} ...\x1b[0m`
                     );
                     let downloadedBytes = 0;
+                    const contentLength = highestQualityFormat.contentLength ? highestQualityFormat.contentLength : await ContentLength(highestQualityFormat.url);
                     const totalBytes = parseInt(
-                        highestQualityFormat.contentLength
+                        contentLength
                     );
                     let prevDownloadedBytes = 0;
                     let prevTimestamp = Date.now();
@@ -273,7 +276,15 @@ if (versionFlags.has(arg)) {
                         prevTimestamp = currentTimestamp;
                         const remainingBytes = totalBytes - downloadedBytes;
                         const remainingTime = remainingBytes / downloadSpeed;
-                        remainingTimeString = formatTime(remainingTime);
+                        if (timeDiff > 0 && downloadSpeed > 0) {
+                            if (downloadSpeed > 0) {
+                                remainingTimeString = formatTime(remainingTime);
+                            } else {
+                                remainingTimeString = "Calculating...";
+                            }
+                        } else {
+                            remainingTimeString = "Calculating...";
+                        }
                     };
 
                     const updateInterval = setInterval(() => {
@@ -283,9 +294,9 @@ if (versionFlags.has(arg)) {
                     videoReadableStream.on("data", (chunk) => {
                         downloadedBytes += chunk.length;
                         const progress = (downloadedBytes / totalBytes) * 100;
-                        const progressBar = generateProgressBar(progress) || 0;
-                        const completedSize = formatBytes(downloadedBytes) || 0;
-                        const totalSize = formatBytes(totalBytes) || 0;
+                        const progressBar = generateProgressBar(progress);
+                        const completedSize = formatBytes(downloadedBytes);
+                        const totalSize = formatBytes(totalBytes);
                         const speed = formatBytes(downloadSpeed);
                         const progressString = `     ${progressBar} \x1b[32m${completedSize}/${totalSize}\x1b[0m | \x1b[31m${speed}\x1b[0m |\x1b[34m est: ${remainingTimeString}\x1b[0m`;
                         const clearLine = "\x1B[0G";
