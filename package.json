@@ -1,6 +1,6 @@
 {
 	"name": "pldl",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"description": "pldl is a command-line interface (CLI) tool that allows you to easily download YouTube playlists. With pldl, you can specify the playlist ID and download all the videos within the playlist for offline viewing.",
 	"main": "./bin/index.js",
 	"scripts": {},

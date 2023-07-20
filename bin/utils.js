@@ -6,21 +6,56 @@ const https = require('https');
 /**
  * @param {string | https.RequestOptions | import("url").URL} url
  */
-function ContentLength(url) {
+function ContentLength(url, maxRetries = 5, currentAttempt = 1) {
     return new Promise((resolve, reject) => {
         const protocol = `${url}`.startsWith('https') ? https : http;
+
         protocol.get(url, (res) => {
             const { statusCode } = res;
-            if (statusCode !== 200) {
-                reject(new Error(`Request failed. Status Code: ${statusCode}`));
-                return;
+
+            if (statusCode === 200) {
+                const contentLength = res.headers['content-length'];
+                if (contentLength) {
+                    resolve(parseInt(contentLength));
+                } else {
+                    if (currentAttempt < maxRetries) {
+                        console.log(`Attempt ${currentAttempt}: Content length not available. Retrying...`);
+                        setTimeout(() => {
+                            ContentLength(url, maxRetries, currentAttempt + 1)
+                                .then(resolve)
+                                .catch(reject);
+                        }, 3000);
+                    } else {
+                        reject(new Error(`Content length not available after ${maxRetries} attempts.`));
+                    }
+                }
+            } else if (statusCode === 302) {
+                // Handle the redirection by extracting the new URL from the 'Location' header
+                const newUrl = res.headers['location'];
+                if (newUrl) {
+                    setTimeout(() => {
+                        ContentLength(newUrl, maxRetries, currentAttempt + 1)
+                            .then(resolve)
+                            .catch(reject);
+                    }, 3000);
+                } else {
+                    reject(new Error(`Redirection failed. New URL not provided in the 'Location' header.`));
+                }
+            } else {
+                if (currentAttempt < maxRetries) {
+                    console.log(`Attempt ${currentAttempt}: Request failed with Status Code: ${statusCode}. Retrying...`);
+                    setTimeout(() => {
+                        ContentLength(url, maxRetries, currentAttempt + 1)
+                            .then(resolve)
+                            .catch(reject);
+                    }, 3000);
+                } else {
+                    reject(new Error(`Request failed with Status Code: ${statusCode} after ${maxRetries} attempts.`));
+                }
             }
-            const contentLength = res.headers['content-length'];
-            resolve(parseInt(contentLength));
-        })
-            .on('error', (err) => {
-                reject(err);
-            });
+        }).on('error', (err) => {
+            reject(err);
+        });
     });
 }
 
